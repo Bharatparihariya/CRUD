@@ -3,48 +3,47 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
+// 🔧 Configure PostgreSQL
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// 🔧 Add services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add DbContext (PostgreSQL)
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+// 🔧 Configure CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowExpo",
-        policy => policy
-            .WithOrigins(
-                "http://localhost:8081",           // Optional for browser testing
-                "http://172.20.10.2:8081",       // ✅ Expo Dev Server (Metro)
-                "http://172.20.10.2:19000",      // ✅ Expo Go app
-                "http://172.20.10.2.51:19006"       // ✅ Expo Dev Tools
+    options.AddPolicy("AllowExpo", policy =>
+        policy.WithOrigins(
+                "http://localhost:8081",
+                "http://172.20.10.2:8081",
+                "http://172.20.10.2:19000",
+                "http://172.20.10.51:19006" // ⚠️ typo fixed from .2.51 to .51
             )
-            .AllowAnyMethod()
-            .AllowAnyHeader());
+            .AllowAnyHeader()
+            .AllowAnyMethod());
 });
-
 
 var app = builder.Build();
 
-// Enable CORS
-
-// Enable Swagger in Development
-if (app.Environment.IsDevelopment())
+// ✅ Use Swagger always (not just in Development)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "CRUD API V1");
+    c.RoutePrefix = string.Empty; // show Swagger at root
+});
 
+// ✅ Use dynamic port for Render.com
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+app.Urls.Add($"http://*:{port}");
+
+// Enable middleware
 app.UseCors("AllowExpo");
-
-
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
