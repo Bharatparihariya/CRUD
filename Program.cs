@@ -28,6 +28,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.UseStaticFiles();
+
 // ✅ Use Swagger always (not just in Development)
 app.UseSwagger();
 app.UseSwaggerUI(c =>
